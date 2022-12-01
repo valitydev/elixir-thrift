@@ -22,6 +22,10 @@ defmodule Mix.Tasks.Thrift.Generate do
     * `-o dir` / `--out dir` - set the output directory, overriding the
       `:output_path` configuration value
     * `-v` / `--verbose` - enable verbose task logging
+    * `--skip-codegen file` - add a file to the list of
+      file paths for which the code generation step is skipped, overriding
+      the `:skip_codegen_files` configuration value. This option can be repeated
+      in order to add multiple directories to the search list.
 
   ## Configuration
 
@@ -31,6 +35,9 @@ defmodule Mix.Tasks.Thrift.Generate do
       be used when Thrift files don't specify their own `elixir` namespace.
     * `:output_path` - output directory into which the generated Elixir
       source files will be generated. Defaults to `"lib"`.
+    * `:skip_codegen_files` - list of files for which the code generation step
+      will be skipped. Usefull to prevent module duplication when using
+      include files already generated externally. Defaults to `[]`.
 
   ```
   # example mix.exs
@@ -55,7 +62,13 @@ defmodule Mix.Tasks.Thrift.Generate do
     {opts, files} =
       OptionParser.parse!(
         args,
-        switches: [include: :keep, namespace: :string, out: :string, verbose: :boolean],
+        switches: [
+          include: :keep,
+          namespace: :string,
+          out: :string,
+          verbose: :boolean,
+          skip_codegen: :keep
+        ],
         aliases: [I: :include, o: :out, v: :verbose]
       )
 
@@ -67,6 +80,10 @@ defmodule Mix.Tasks.Thrift.Generate do
       (opts[:include] && Keyword.get_values(opts, :include)) ||
         Keyword.get(config, :include_paths, [])
 
+    skip_codegen_files =
+      (opts[:skip_codegen] && Keyword.get_values(opts, :skip_codegen)) ||
+        Keyword.get(config, :skip_codegen_files, [])
+
     parser_opts =
       Keyword.new()
       |> Keyword.put(:include_paths, include_paths)
@@ -74,7 +91,7 @@ defmodule Mix.Tasks.Thrift.Generate do
 
     unless Enum.empty?(files) do
       File.mkdir_p!(output_path)
-      Enum.each(files, &generate!(&1, output_path, parser_opts, opts))
+      Enum.each(files, &generate!(&1, output_path, parser_opts, opts, skip_codegen_files))
     end
   end
 
@@ -84,13 +101,13 @@ defmodule Mix.Tasks.Thrift.Generate do
     e -> Mix.raise("#{thrift_file}: #{Exception.message(e)}")
   end
 
-  defp generate!(thrift_file, output_path, parser_opts, opts) do
+  defp generate!(thrift_file, output_path, parser_opts, opts, skip_codegen_files) do
     Mix.shell().info("Parsing #{thrift_file}")
 
     generated_files =
       thrift_file
       |> parse!(parser_opts)
-      |> Thrift.Generator.generate!(output_path)
+      |> Thrift.Generator.generate!(output_path, skip_codegen_files)
 
     if opts[:verbose] do
       generated_files

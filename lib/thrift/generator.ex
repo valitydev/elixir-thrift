@@ -18,9 +18,11 @@ defmodule Thrift.Generator do
   @doc """
   Returns the list of target paths that would be generated from a Thrift file.
   """
-  @spec targets(FileGroup.t()) :: [Path.t()]
-  def targets(%FileGroup{} = file_group) do
-    Enum.flat_map(file_group.schemas, fn {_, schema} ->
+  @spec targets(FileGroup.t(), [Path.t()]) :: [Path.t()]
+  def targets(%FileGroup{} = file_group, skip_files \\ []) do
+    file_group.schemas
+    |> skip_schemas_for_files(skip_files)
+    |> Enum.flat_map(fn {_, schema} ->
       schema
       |> Map.put(:file_group, file_group)
       |> generate_schema
@@ -38,8 +40,10 @@ defmodule Thrift.Generator do
     |> Kernel.<>(".ex")
   end
 
-  def generate!(%FileGroup{} = file_group, output_dir) do
-    Enum.flat_map(file_group.schemas, fn {_, schema} ->
+  def generate!(%FileGroup{} = file_group, output_dir, skip_files \\ []) do
+    file_group.schemas
+    |> skip_schemas_for_files(skip_files)
+    |> Enum.flat_map(fn {_, schema} ->
       schema
       |> Map.put(:file_group, file_group)
       |> generate_schema
@@ -47,15 +51,16 @@ defmodule Thrift.Generator do
     end)
   end
 
-  def generate_to_string!(%FileGroup{} = file_group) do
-    Enum.flat_map(file_group.schemas, fn {_, schema} ->
+  def generate_to_string!(%FileGroup{} = file_group, skip_files \\ []) do
+    file_group.schemas
+    |> skip_schemas_for_files(skip_files)
+    |> Enum.flat_map(fn {_, schema} ->
       generate_schema(%Schema{schema | file_group: file_group})
     end)
     |> Enum.reverse()
-    |> Enum.map(fn {_, code} ->
+    |> Enum.map_join("\n", fn {_, code} ->
       Macro.to_string(code)
     end)
-    |> Enum.join("\n")
   end
 
   def generate_schema(schema) do
@@ -207,5 +212,9 @@ defmodule Thrift.Generator do
     for {_, service} <- schema.services do
       Generator.Behaviour.generate(schema, service)
     end
+  end
+
+  defp skip_schemas_for_files(schemas, skip_files) do
+    Map.reject(schemas, fn {_name, schema} -> schema.path in skip_files end)
   end
 end

@@ -32,6 +32,9 @@ defmodule Mix.Tasks.Compile.Thrift do
       `"Thrift.Generated"`.
     * `:output_path` - output directory into which the generated Elixir
       source files will be generated. Defaults to `"lib"`.
+    * `:skip_codegen_files` - list of files for which the code generation step
+      will be skipped. Usefull to prevent module duplication when using
+      include files already generated externally. Defaults to `[]`.
 
   These should be set in you project config in the `:thrift` key as in the
   example below.
@@ -63,6 +66,7 @@ defmodule Mix.Tasks.Compile.Thrift do
     config = Keyword.get(Mix.Project.config(), :thrift, [])
     input_files = Keyword.get(config, :files, [])
     output_path = Keyword.get(config, :output_path, "lib")
+    skip_codegen_files = Keyword.get(config, :skip_codegen_files, [])
 
     parser_opts =
       config
@@ -77,8 +81,8 @@ defmodule Mix.Tasks.Compile.Thrift do
 
         {groups, [] = _diagnostics} ->
           groups
-          |> extract_targets(output_path, opts[:force])
-          |> generate(manifest(), output_path, opts)
+          |> extract_targets(output_path, opts[:force], skip_codegen_files)
+          |> generate(manifest(), output_path, opts, skip_codegen_files)
 
         {_groups, diagnostics} ->
           {:error, diagnostics}
@@ -117,12 +121,12 @@ defmodule Mix.Tasks.Compile.Thrift do
 
   @typep mappings :: [{:stale, FileGroup.t(), [Path.t()]} | {:ok, FileGroup.t(), [Path.t()]}]
 
-  @spec extract_targets([FileGroup.t()], Path.t(), boolean) :: mappings
-  defp extract_targets(groups, output_path, force) when is_list(groups) do
+  @spec extract_targets([FileGroup.t()], Path.t(), boolean, [Path.t()]) :: mappings
+  defp extract_targets(groups, output_path, force, skip_codegen_files) when is_list(groups) do
     for %FileGroup{initial_file: file} = group <- groups do
       targets =
         group
-        |> Thrift.Generator.targets()
+        |> Thrift.Generator.targets(skip_codegen_files)
         |> Enum.map(&Path.join(output_path, &1))
 
       if force || Mix.Utils.stale?([file], targets) do
@@ -133,9 +137,9 @@ defmodule Mix.Tasks.Compile.Thrift do
     end
   end
 
-  @spec generate(mappings, Path.t(), Path.t(), OptionParser.parsed()) ::
+  @spec generate(mappings, Path.t(), Path.t(), OptionParser.parsed(), [Path.t()]) ::
           {:ok | :noop | :error, [Diagnostic.t()]}
-  defp generate(mappings, manifest, output_path, opts) do
+  defp generate(mappings, manifest, output_path, opts, skip_codegen_files) do
     timestamp = :calendar.universal_time()
     verbose = opts[:verbose]
 
@@ -163,7 +167,7 @@ defmodule Mix.Tasks.Compile.Thrift do
         Mix.Utils.compiling_n(length(stale), :thrift)
 
         Enum.each(stale, fn {group, _targets} ->
-          Thrift.Generator.generate!(group, output_path)
+          Thrift.Generator.generate!(group, output_path, skip_codegen_files)
           verbose && Mix.shell().info("Compiled #{group.initial_file}")
         end)
       end

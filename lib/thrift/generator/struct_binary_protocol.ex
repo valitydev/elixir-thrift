@@ -1244,6 +1244,7 @@ defmodule Thrift.Generator.StructBinaryProtocol do
   defp type_id(%Union{}, _), do: Type.struct()
   defp type_id(type, _), do: Type.of(type)
 
+  # NOTE As in https://github.com/elixir-lang/elixir/blob/b10df9cd539af980851b7878f8a86d7bbdc4c0bd/lib/elixir/src/elixir_errors.erl#L336-L356
   defp escaped_var(name)
        when name in ~w"not and or when after catch end fn else rescue true false nil in"a,
        do: Macro.var(:"#{name}_", nil)

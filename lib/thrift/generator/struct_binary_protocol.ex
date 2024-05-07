@@ -995,7 +995,7 @@ defmodule Thrift.Generator.StructBinaryProtocol do
         %Field{name: match_name} = match_field ->
           field_matchers =
             Enum.map(all_fields_nil, fn
-              {^match_name, nil} -> {match_name, Macro.var(match_name, nil)}
+              {^match_name, nil} -> {match_name, escaped_var(match_name)}
               {other_name, nil} -> {other_name, nil}
             end)
 
@@ -1037,7 +1037,7 @@ defmodule Thrift.Generator.StructBinaryProtocol do
 
     field_matchers =
       Enum.map(fields, fn %Field{name: name} ->
-        {name, Macro.var(name, nil)}
+        {name, escaped_var(name)}
       end)
 
     field_serializers = Enum.map(fields, &field_serializer(&1, name, file_group))
@@ -1055,7 +1055,7 @@ defmodule Thrift.Generator.StructBinaryProtocol do
          _file_group
        ) do
     quote do
-      case unquote(Macro.var(name, nil)) do
+      case unquote(escaped_var(name)) do
         false ->
           <<unquote(Type.bool()), unquote(id)::16-signed, 0>>
 
@@ -1073,7 +1073,7 @@ defmodule Thrift.Generator.StructBinaryProtocol do
 
   defp field_serializer(%Field{name: name, type: :bool, id: id}, struct_name, _file_group) do
     quote do
-      case unquote(Macro.var(name, nil)) do
+      case unquote(escaped_var(name)) do
         nil ->
           <<>>
 
@@ -1094,7 +1094,7 @@ defmodule Thrift.Generator.StructBinaryProtocol do
 
   defp field_serializer(%Field{name: name, required: true} = field, struct_name, file_group) do
     quote do
-      case unquote(Macro.var(name, nil)) do
+      case unquote(escaped_var(name)) do
         nil ->
           raise Thrift.InvalidValueError,
                 unquote(
@@ -1109,7 +1109,7 @@ defmodule Thrift.Generator.StructBinaryProtocol do
 
   defp field_serializer(%Field{name: name} = field, _struct_name, file_group) do
     quote do
-      case unquote(Macro.var(name, nil)) do
+      case unquote(escaped_var(name)) do
         nil ->
           <<>>
 
@@ -1120,7 +1120,7 @@ defmodule Thrift.Generator.StructBinaryProtocol do
   end
 
   defp required_field_serializer(%Field{name: name, type: type, id: id}, file_group) do
-    var = Macro.var(name, nil)
+    var = escaped_var(name)
 
     Utils.optimize_iolist([
       quote do
@@ -1243,4 +1243,10 @@ defmodule Thrift.Generator.StructBinaryProtocol do
   defp type_id(%Exception{}, _), do: Type.struct()
   defp type_id(%Union{}, _), do: Type.struct()
   defp type_id(type, _), do: Type.of(type)
+
+  defp escaped_var(name)
+       when name in ~w"not and or when after catch end fn else rescue true false nil in"a,
+       do: Macro.var(:"#{name}_", nil)
+
+  defp escaped_var(name), do: name
 end

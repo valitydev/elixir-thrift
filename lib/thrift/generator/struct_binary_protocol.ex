@@ -1248,5 +1248,5 @@ defmodule Thrift.Generator.StructBinaryProtocol do
        when name in ~w"not and or when after catch end fn else rescue true false nil in"a,
        do: Macro.var(:"#{name}_", nil)
 
-  defp escaped_var(name), do: name
+  defp escaped_var(name), do: Macro.var(name, nil)
 end

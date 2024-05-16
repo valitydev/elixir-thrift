@@ -84,6 +84,9 @@ defmodule Thrift.Mixfile do
       {:credo, "~> 1.0", only: :dev, runtime: false},
       {:dialyxir, "~> 1.0", only: :dev, runtime: false},
 
+      # Temp fix
+      {:ssl_verify_fun, "~> 1.1.7", manager: :rebar3, override: true},
+
       # Runtime
       {:connection, "~> 1.0"},
       {:ranch, "~> 1.6"},

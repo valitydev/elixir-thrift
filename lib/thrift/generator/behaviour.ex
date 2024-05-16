@@ -55,7 +55,7 @@ defmodule Thrift.Generator.Behaviour do
 
   def to_arg_spec(%Field{name: name, type: type}, file_group) do
     quote do
-      unquote(Macro.var(name, nil)) :: unquote(typespec(type, file_group))
+      unquote(Utils.escape_var(name)) :: unquote(typespec(type, file_group))
     end
   end
 

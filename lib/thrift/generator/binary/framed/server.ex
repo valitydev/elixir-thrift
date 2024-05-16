@@ -64,7 +64,7 @@ defmodule Thrift.Generator.Binary.Framed.Server do
 
     struct_matches =
       Enum.map(function.params, fn param ->
-        {param.name, Macro.var(param.name, nil)}
+        {param.name, Utils.escape_var(param.name)}
       end)
 
     quote do
@@ -84,7 +84,7 @@ defmodule Thrift.Generator.Binary.Framed.Server do
 
   defp build_handler_call(file_group, function, response_module) do
     handler_fn_name = Utils.underscore(function.name)
-    handler_args = Enum.map(function.params, &Macro.var(&1.name, nil))
+    handler_args = Enum.map(function.params, &Utils.escape_var(&1.name))
     body = build_responder(function.return_type, handler_fn_name, handler_args, response_module)
     wrap_with_try_catch(body, function, file_group, response_module)
   end
@@ -96,7 +96,7 @@ defmodule Thrift.Generator.Binary.Framed.Server do
         exc ->
           resolved = FileGroup.resolve(file_group, exc)
           dest_module = FileGroup.dest_module(file_group, resolved.type)
-          error_var = Macro.var(exc.name, nil)
+          error_var = Utils.escape_var(exc.name)
           field_setter = quote do: {unquote(exc.name), unquote(error_var)}
 
           quote do

@@ -40,6 +40,7 @@ defmodule BehaviourTest do
                  SorT get_s_or_t();
                  MyEx dont_do_this();
                  void upload_file(1: string filename, 2: binary data);
+                 list<T> pull(1: i64 after, 2: i32 limit);
                }
                """
 

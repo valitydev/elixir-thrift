@@ -18,7 +18,7 @@ defmodule Thrift.Transport.SSL do
   credentials or to change the configuration during run time.
   """
 
-  @type configure :: {module, function, list} | (() -> {:ok, [option]} | {:error, Exception.t()})
+  @type configure :: {module, function, list} | (-> {:ok, [option]} | {:error, Exception.t()})
   @type option ::
           :ssl.ssl_option() | {:enabled, boolean} | {:optional, boolean} | {:configure, configure}
 

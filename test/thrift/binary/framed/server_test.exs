@@ -32,6 +32,7 @@ defmodule Servers.Binary.Framed.IntegrationTest do
                    bool server_exception();
                    IdAndName echo_struct(1: IdAndName id_and_name);
                    i64 myCamelCasedFunction(1: string myUserName);
+                   list<i32> get_numbers(1: i64 after, 2: i32 limit);
                  }
                """
 
@@ -78,6 +79,12 @@ defmodule Servers.Binary.Framed.IntegrationTest do
       def my_camel_cased_function(user_name) do
         Agent.update(:server_args, fn _ -> user_name end)
         2421
+      end
+
+      @impl ServerTest.Handler
+      def get_numbers(after_, limit) do
+        1..100
+        |> Enum.slice(after_, limit)
       end
     end
   end
@@ -173,8 +180,12 @@ defmodule Servers.Binary.Framed.IntegrationTest do
     assert {:ok, ^id_and_name} = Client.echo_struct(ctx.client, id_and_name)
   end
 
+  thrift_test "it can handle function with reserved word arg", ctx do
+    assert {:ok, [42]} = Client.get_numbers(ctx.client, 41, 1)
+  end
+
   thrift_test "it can handle bogus data", ctx do
-    {:ok, socket} = :gen_tcp.connect('localhost', ctx.port, [:binary, packet: 4, active: false])
+    {:ok, socket} = :gen_tcp.connect(~c"localhost", ctx.port, [:binary, packet: 4, active: false])
     :ok = :gen_tcp.send(socket, <<1, 2, 3, 4, 5>>)
 
     assert {:error, :closed} == :gen_tcp.recv(socket, 0)

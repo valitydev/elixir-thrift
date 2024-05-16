@@ -27,6 +27,7 @@ defmodule Thrift.Generator.ServiceTest do
                  map<string, i64> friend_nicknames(1: i64 user_id),
                  set<string> tags(1: i64 user_id),
                  bool And(1: bool left, 2: bool right),
+                 list<User> get_list(1: i64 after, 2: i32 limit);
                }
                """
 

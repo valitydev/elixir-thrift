@@ -343,4 +343,18 @@ defmodule Thrift.Generator.Utils do
   defp resolution_failed(%ValueRef{} = ref) do
     raise "Fatal error: Could not find value: #{ref.referenced_value}"
   end
+
+  # NOTE As in https://github.com/elixir-lang/elixir/blob/b10df9cd539af980851b7878f8a86d7bbdc4c0bd/lib/elixir/src/elixir_errors.erl#L336-L356
+  @reserved_keywords ~w"not and or when after catch end fn else rescue true false nil in"a
+
+  @doc """
+  Escapes variable name so it wont match any reserved keyword.
+  """
+  def escape_var(name) when name in @reserved_keywords do
+    Macro.var(:"#{name}_", nil)
+  end
+
+  def escape_var(name) do
+    Macro.var(name, nil)
+  end
 end

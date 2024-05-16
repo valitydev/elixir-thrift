@@ -62,7 +62,7 @@ defmodule Thrift.Generator.Binary.Framed.Client do
         0
       )
 
-    vars = Enum.map(function.params, &Utils.escape_var(&1.name, nil))
+    vars = Enum.map(function.params, &Utils.escape_var(&1.name))
 
     assignments =
       function.params
